@@ -1,0 +1,137 @@
+---
+title: "IS605 - Assignment 1"
+author: "Suman K Polavarapu"
+date: "Saturday, August 29, 2015"
+output: html_document
+---
+
+## PROBLEM SET 1 :
+
+
+__1. Calculate the dot product u.v where u = [0.5, 0.5] and v = [3, -4]__
+
+```{r}
+u <- c(0.5, 0.5)
+v <- c(3, -4)
+(dot.product <- u %*% v) #This returns the inner product as a matrix
+
+#Alternatively, We can simply use the sum(u*v)
+(dot.product <- sum(u*v))
+```
+
+
+__2. What are the lengths of u and v ?__
+
+```{r}
+( u.length <- sqrt( sum(u * u) ) )
+( v.length <- sqrt( sum(v * v) ) )
+```
+
+
+__3. What is the linear combination: 3u - 2v ?__
+
+```{r}
+( linearComb <- 3 * u - 2 * v )
+```
+
+
+__4. What is the angle between u and v ? __
+
+The dot product of the vectors u and v is defined as:
+
+u . v = ||u||  ||v||  cos θ
+
+So, θ = arccos ( u . v / ||u||  ||v|| )
+
+```{r}
+#Angle between u and v vectors
+(angle.radians <- acos( sum(u * v) / ( sqrt(sum( u * u)) * sqrt(sum(v * v)) )) ) 
+#In Degrees
+(degrees <- angle.radians * (180/pi))
+
+````
+
+
+## PROBLEM SET 2 :
+
+__1. Function to solve the system of equations with 3 variables and 3 constraints, solving for x__
+
+```{r}
+
+#Solves 3  X 3 system of equations using the below :
+#systematically convert the co-efficient matrix A into the Upper Triangular Form as below:
+#(1) Start with row 1 of the co-efficient matrix
+#(2) Pivot: The first non-zero element in the row being evaluated
+#(3) Multiplier: The element being eliminated divided by the Pivot
+#(4) Subtract Multiplier times row n from row n+1
+#(5) Advance to the next row and repeat
+
+#Inputs  - Co-efficient matrix, and the constrains vector.
+#Output  - a vector x of solutions for x1,x2 and x3.
+
+solve3by3System <- function(A,b)
+{
+
+  #creat a numeric vector of size 3, to keep outputs.
+  x = numeric(3);
+  
+  #column bind the constraints vector.
+  (A<-cbind(A,b))
+  
+  #start with row1, check the pivot, if zero swap.
+  if(A[1,1] == 0)
+  {
+    if (A[2,1] != 0) 
+    {
+      A <- A[c(2,1,3),]
+    }
+    else
+    {
+      A <- A[c(3,1,2),]
+    }
+  }
+
+  #row2 elimination - subtract the [multiplier * row1] from row2, by using A[1,1] as pivot
+  multiplier <- (A[2,1]/A[1,1])
+  A[2,] <- A[2,] - (multiplier * A[1,])
+  
+  #row3 elimination - subtract the [multiplier * row1] from row3
+  multiplier <- (A[3,1]/A[1,1])
+  A[3,] <- A[3,] - (multiplier * A[1,])
+  
+  #swap for zero pivot - if A[2,2] is zero then swap with row 3
+  if (A[2,2] == 0)
+  {
+    A <- A[c(1,3,2) ,]
+  }
+  
+  #row3 elimination - Now, use the A[2,2] as the pivot for row3 elimination
+  multiplier <- (A[3,2]/A[2,2])
+  A[3,] <- A[3,] - (multiplier * A[2,])
+  
+  #Back substitution step
+  x[3] <- A[3,4]/A[3,3]
+  x[2] <- (A[2,4]-A[2,3]*x[3])/A[2,2]
+  x[1] <- (A[1,4]-A[1,2]*x[2] - A[1,3]*x[3])/A[1,1]
+  
+  return (round(x,2))
+}
+```
+
+__Client:__
+```{r}
+#Inputs...
+(A<- matrix(c(1,1,3,2,-1,5,-1,-2,4), ncol=3, byrow=T))
+(b<- matrix(c(1,2,6)))
+#client call...
+(solve3by3System(A,b))
+```
+
+__Trying the same with x <- (A Inverse) X b , using built-in inverse method in R, "solve"__
+
+Ax = b ==> x = Inverse-of-A * b, thus x can be derived by inversing A and mulitiplying with the constraint vector b.
+```{r}
+
+(x <- round( solve(A) %*% b , 2 ))
+
+```
