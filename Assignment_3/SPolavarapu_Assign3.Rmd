@@ -1,0 +1,203 @@
+---
+title: "IS605 - Assignment 3"
+author: "Suman K Polavarapu"
+date: "Sunday, September 13, 2015"
+output: html_document
+---
+
+## Problem Set 1
+
+#### (1) What is the rank of the matrix A ?
+
+ \(A=\begin{bmatrix}
+    1 & 2 &  3 & 4 \\
+   -1 & 0 &  1 & 3 \\
+    0 & 1 & -2 & 1 \\
+    5 & 4 & -2 & 3
+  \end{bmatrix}\)
+
+The rank of the above 4 X 4 matrix is 4 due to the presence of 4 non-zero pivots, as shown below using the _row reduced echelon form_ :
+
+```{r}
+(A <- matrix(c(1,2,3,4,-1,0,1,3,0,1,-2,1,5,4,-2,-3),nrow=4, byrow=TRUE))
+
+#Eliminate the element (2,1) ==>  r1 + r2
+(E21 <- matrix(c(1,0,0,0,1,1,0,0,0,0,1,0,0,0,0,1), nrow=4, byrow=TRUE))
+(A <- E21 %*% A)
+
+#Eliminate the element (4,1) ==>  r4 - 5 r1
+(E41 <- matrix(c(1,0,0,0,0,1,0,0,0,0,1,0,-5,0,0,1), nrow=4, byrow=TRUE))
+(A <- E41 %*% A)
+
+#Eliminate the element (3,2) ==> r3 - r2/2
+(E32 <- matrix(c(1,0,0,0,0,1,0,0,0,-0.5,1,0,0,0,0,1), nrow=4, byrow=TRUE))
+(A <- E32 %*% A)
+
+#Eliminate the element (4,2) ==> r4 + 3 r2
+(E42 <- matrix(c(1,0,0,0,0,1,0,0,0,0,1,0,0,3,0,1), nrow=4, byrow=TRUE))
+(A <- E42 %*% A)
+
+#Eliminate the element (4,3) ==> r4 - (5 * r3) / 4
+(E43 <- matrix(c(1,0,0,0,0,1,0,0,0,0,1,0,0,0,-1.25,1), nrow=4, byrow=TRUE))
+(A <- E43 %*% A)
+
+#Conclusion : There is no row with all zeroes, and there are 4 non-zero pivots so, the rank of the matrix is 4.
+
+```
+
+
+
+#### (2) Given an $m$ x $n$ matrix where $m > n$, what can be the maximum rank? The minimum rank, assuming that the matrix is non-zero ?
+
+* The maximum rank of an $m$ x $n$ matrix will be the smaller of the 2 dimensions, so, $m > n$ , then the max rank is $n$. 
+
+* If a matrix is non-zero, then obviosly it must contain atleast 1 non-zero pivot, hence the minimum rank is 1.
+
+
+
+#### (3) What is the rank of the matrix B?
+
+ \(B=\begin{bmatrix}
+    1 & 2 &  1 \\
+    3 & 6 &  3 \\
+    2 & 4 &  2 
+  \end{bmatrix}\)
+  
+  As given below, the matrix $B$ has only one non-zero row , hence, its rank is 1.
+  
+```{r}
+(B <- matrix(c(1,2,1,3,6,3,2,4,2),nrow=3, byrow=TRUE))
+
+#Eliminate the element (2,1) ==> r2 - 3r1 
+(E21 <- matrix(c(1,0,0,-3,1,0,0,0,1), nrow=3, byrow=TRUE))
+
+(B <- E21 %*% B)
+
+#Eliminate the element (3,1) ==> r3 - 2r1 
+(E31 <- matrix(c(1,0,0,0,1,0,-2,0,1), nrow=3, byrow=TRUE))
+
+(B <- E31 %*% B)
+
+#Conclusion: 2 rows are all of zeroes, and only 1 non-zero row present, so the Rank(B) = 1
+```
+
+
+
+## Problem Set 2
+
+Compute the eigenvalues and eigenvectors for matrix $A = \begin{bmatrix} 1 & 2 & 3 \\ 0 & 4 & 5 \\ 0 & 0 & 6 \end{bmatrix}$
+
+#### Eigenvalues:
+$\lambda$ is an eigenvalue of $A$ iff $det(A - \lambda I_n) = 0$
+==>
+$$
+det \left(\begin{bmatrix} 1 & 2 & 3 \\ 0 & 4 & 5 \\ 0 & 0 & 6 \end{bmatrix} -
+          \lambda
+          \begin{bmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{bmatrix}  \right) = 0
+$$
+==>
+$$
+det \left( \begin{bmatrix} 1 & 2 & 3 \\ 0 & 4 & 5 \\ 0 & 0 & 6 \end{bmatrix} -
+          \begin{bmatrix} \lambda & 0 & 0 \\ 0 & \lambda & 0 \\ 0 & 0 & \lambda \end{bmatrix} \right) = 0
+$$
+==>
+$$
+det \left( \begin{bmatrix} 1 - \lambda & 2 & 3 \\ 
+                          0 & 4 - \lambda  & 5 \\ 
+                          0 & 0 & 6 - \lambda \end{bmatrix} \right) = 0
+$$
+==>
+$$
+(1 - \lambda ) * det \begin{bmatrix} 4 - \lambda & -5 \\ 0 & 6 - \lambda \end{bmatrix} -
+2 * det \begin{bmatrix} 0 & -5 \\ 0 & 6 - \lambda \end{bmatrix} +
+3 * det \begin{bmatrix} 0 & 4 - \lambda \\ 0 & 0 \end{bmatrix} = 0
+$$
+==>
+$$
+(1 - \lambda)((4- \lambda)(6 - \lambda) - 0) + 2(0 - 0) + 3(0 - 0) = 0
+$$
+So, the characteristic equation is:
+$$
+\lambda^3 - 11\lambda^2 + 34\lambda - 24 = (\lambda - 1)(\lambda - 4)(\lambda - 6) = 0
+$$
+hence , the eigenvalues are: $\lambda = 1$, $\lambda = 4$, and $\lambda = 6$.
+
+
+#### Eigenvectors:
+
+Using the below equation, lets calculate the eigenvectors for the eigenvalues :
+$$
+(A - \lambda I_n) \vec{v} = 0
+$$
+
+#####For $\lambda = 1$:#####
+
+$$
+\left( \begin{bmatrix} 1 & 2 & 3 \\ 0 & 4 & 5 \\ 0 & 0 & 6 \end{bmatrix} -
+\begin{bmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{bmatrix} \right)
+\begin{bmatrix} v_1 \\ v_2 \\ v_3 \end{bmatrix} =
+\begin{bmatrix} 0 & 2 & 3 \\ 0 & 3 & 5 \\ 0 & 0 & 5 \end{bmatrix} \begin{bmatrix} v_1 \\ v_2 \\ v_3 \end{bmatrix} = 0
+$$
+
+From the third row, $5 v_3 = 0$ so $v_3 = 0$. 
+Substituting it in row 2 equation, we will get $3 v_2 = 0$ , so $v_2 = 0$. 
+Finally from the first row, $0 v_1 = 0$. Using the above information gives the following eigenvector when $\lambda = 1$ , ( because
+we need to make sure the vector is non-zero vector ) :
+$$
+v= \begin{pmatrix} 1 \\ 0 \\ 0 \end{pmatrix}
+$$
+
+#####For $\lambda = 4$:#####
+$$
+\left( \begin{bmatrix} 1 & 2 & 3 \\ 0 & 4 & 5 \\ 0 & 0 & 6 \end{bmatrix} -
+\begin{bmatrix} 4 & 0 & 0 \\ 0 & 4 & 0 \\ 0 & 0 & 4 \end{bmatrix} \right)
+\begin{bmatrix} v_1 \\ v_2 \\ v_3 \end{bmatrix} =
+\begin{bmatrix} -3 & 2 & 3 \\ 0 & 0 & 5 \\ 0 & 0 & 2 \end{bmatrix}
+\begin{bmatrix} v_1 \\ v_2 \\ v_3 \end{bmatrix} = 0
+$$
+from third row, $2 v_3 = 0$ or, $v_3 = 0$
+
+substituting this in the first row gives the following:
+$$
+-3 v_1 + 2 v_2 = 0 ==> \frac{3}{2} v_1 = v_2
+$$
+
+Hence, the eigenvector when $\lambda = 4$ is:
+$$
+v= \begin{pmatrix} 1 \\ \frac{3}{2} \\ 0 \end{pmatrix}
+$$
+
+#####For $\lambda = 6$:#####
+$$
+\left( \begin{bmatrix} 1 & 2 & 3 \\ 0 & 4 & 5 \\ 0 & 0 & 6 \end{bmatrix} -
+\begin{bmatrix} 6 & 0 & 0 \\ 0 & 6 & 0 \\ 0 & 0 & 6 \end{bmatrix} \right)
+\begin{bmatrix} v_1 \\ v_2 \\ v_3 \end{bmatrix} =
+\begin{bmatrix} -5 & 2 & 3 \\ 0 & -2 & 5 \\ 0 & 0 & 0 \end{bmatrix}
+\begin{bmatrix} v_1 \\ v_2 \\ v_3 \end{bmatrix} = 0
+$$
+
+So, the equations are:
+$$-5 v_1 + 2 v_2 +  3 v_3 = 0  ,  -2 v_2 + 5 v_3 = 0 $$
+by substituting, we will get
+$$
+v_3 = \frac{2}{5} v_2 ,
+v_2 = \frac{25}{16} v_1
+$$
+by substituting $v_2$ in the first equation , we will get:
+$$
+v_3 = \frac{5}{8} v_1
+$$
+
+Hence, the eigenvector when $\lambda = 6$ is:
+$$
+v= \begin{pmatrix} 1 \\ \frac{25}{16} \\ \frac{5}{8} \end{pmatrix}
+$$
+
+
+####Using the R eigen function####
+```{r}
+(A <- matrix(c(1,2,3,0,4,5,0,0,6), nrow=3, byrow=TRUE))
+(e <- eigen(A))
+```
+
+
