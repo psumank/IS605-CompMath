@@ -1,0 +1,1 @@
+Not just multiples of identity and matrix with all identical elements but any diagonal matrix and any symmetric matrix will have AA^T = A^T A.

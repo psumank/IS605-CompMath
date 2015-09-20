@@ -1,0 +1,136 @@
+---
+title: "IS605 - Assignment 4"
+author: "Suman K Polavarapu"
+date: "Sunday, September 20, 2015"
+output: html_document
+---
+
+### Problem Set 1
+
+__In this problem, we'll verify using R that SVD (Singular Value Decomposition) and Eigenvalues are related:__
+
+Given a 3 x 2 matrix $A$
+$$
+A = \begin{bmatrix} 1 & 2 & 3 \\ -1 & 0 & 4 \end{bmatrix}
+$$
+
+```{r}
+(A <- matrix(c(1,2,3,-1,0,4),byrow=T, nrow=2))
+```
+
+
+**Write code in R to compute $X = A A^T$ and  $Y = A^T A$. Then, compute the eigenvalues and eigenvectors of X and Y using the built-in commands in R.**
+
+_First, compute $X = A A^T$ and  $Y = A^T A$_
+
+```{r}
+(X <- A %*% t(A))
+
+(Y <- t(A) %*% A)
+```
+
+_Now, compute the eigenvalues and eigenvectors of X and Y using the built-in command 'eigen'_
+
+```{r}
+(eX <- eigen(X))
+(eY <- eigen(Y))
+```
+
+**Compute the left-singular, singular values, and right-singular vectors of A using the svd command.**
+```{r}
+#svd() function calculates the singular values and the left and right singular vectors for A. 
+(svdA <- svd(A))
+(svdA$d)^2
+```
+
+Notice that the above gives us the singular values of 5.157693 and 2.097188, and the left singular vector $u , and the right singular vector $v.
+
+Lets now compare the eigenvalues and eigenvectors with the svd results.
+
+```{r}
+#Compare the left singular vector U to the eigenvectors of X
+(eX$vectors)
+(svdA$u)
+round(abs(eX$vectors)) == round(abs(svdA$u))
+```
+
+Notice that these vectors are same - with just a difference that one of the vectors is multiplied by a scalar -1. However, since
+these vectors are same with just a scalar difference , we can say that these are defined on the same plane. Hence, the left singular
+vectors are also the eigenvectors of X.
+
+Similarly, lets look at the eigenvectors of Y with the right singular vectors:
+
+```{r}
+(eY$vectors)
+(svdA$v)
+round(abs(eY$vectors[,-3])) == round(abs(svdA$v))
+```
+
+Let's now compare the eigenvalues and the squares of singular values:
+
+```{r}
+(eX$values)
+(eY$values)
+(svdA$d^2)
+
+round(eX$values) == round(svdA$d^2)
+#compare now the eigenvalues of Y - removing the value closer to zero
+round(eY$values[-3]) == round(svdA$d^2)
+```
+In the above, notice that the eigenvalues for $X$, the eigenvalues for $Y$ and the square of the singular values are same.
+
+### Problem Set 2
+
+__Write a function to compute the inverse of a well-conditioned full-rank square matrix using co-factors.__
+
+```{r}
+#Computes the inverse for a well-conditioned, full rank square matrix.
+#Inputs: A = Matrix to be inverted.
+#Output: Inverse of A.
+myinverse <- function(A) {
+
+  #If its not invertable, stop!
+  if (det(A) == 0) {
+    stop('Non Invertable Matrix !')
+  }
+  
+  #Initialize the rows and columns
+  m <- nrow(A)
+  n <- ncol(A)
+  
+  #Declare the co-factor matrix.
+  C <- diag(0, nrow = m, ncol = n)
+  
+  #compute the cofactors
+  #- loop thru rows and cols of A, and remove the current row/col, and calc the det, with proper sign.
+  for(i in 1:m)
+  {
+    for(j in 1:n)
+    {
+        C[i, j] <- (-1)^(i+j) * det(A[-i, -j])
+    }
+  }
+  
+  #Inverse of A = t(C)/det(A)
+  return((t(C) / det(A)))
+}
+
+````
+
+
+_Client calls:_
+
+```{r}
+set.seed(40)
+(A <- matrix(sample(10:20, 9, replace=TRUE),byrow=T, nrow =3))
+(B <- round(myinverse(A),2))
+
+#using builtin inverse function: 'solve'
+(sB <- round(solve(A),2))
+
+#compare both
+(B == sB)
+
+#verify, AB = I
+round(A %*% B)
+```
