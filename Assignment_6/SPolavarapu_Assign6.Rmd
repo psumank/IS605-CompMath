@@ -1,0 +1,196 @@
+---
+title: "Assignment 6"
+author: "Suman K Polavarapu"
+date: "Sunday, October 04, 2015"
+output: html_document
+---
+
+### Problem Set 1
+
+___When you roll a fair die 3 times, how many possible outcomes are there?___
+
+```{r}
+#A fair die with 6 sides
+sides <- 6
+
+#rolled 3 times, so the possible outcomes are 6 x 6 x 6 
+(possible.outcomes <- (sides)^3)
+
+```
+
+
+___What is the probability of getting a sum total of 3 when you roll a die two times?___
+
+```{r}
+total.outcomes <- (sides)^2
+#1, 2 or 2, 1
+numberofways.getting.sum.three <- 2
+
+(prob.numberofways.getting.sum.three <- numberofways.getting.sum.three / total.outcomes)
+
+```
+
+Or, simply, $\frac{2}{36} = \frac{1}{18}$
+
+
+__Assume a room of 25 strangers. What is the probability that two of them have the same birthday? Assume that all birthdays are equally likely and equal to 1/365 each. What happens to this probability when there are 50 people in the room?__
+
+Using complement probability, $p(n) = 1 - \bar{p}(n)$
+   
+   p(atleast 2 of 25 have the same b-day) = 1 - p(none share a b-day)
+   
+Let's assume there are only 4 people, then, 
+
+  the total number of outcomes in the sample space = $365^4$
+  How many of the above outcomes have no repeats   = $365 * 364 * 363 * 362$
+  So, p(atleast 2 of the share b-day) = 1 - ( $(365 * 364 * 363 * 362) / (365^4)$ )
+
+To generalize, 
+
+  P(atleast 2 in r share a b-day) = 1 - P(No repeats in r b-days) = 1 - [ ( 365!/(365-r)! ) / (365 ^ r) ]
+  
+```{r}
+
+perm_without_replacement <- function(n,r) { return ( choose(n,r) * factorial(r) ) }
+
+prob_two_share_bday <- function(n,r) {
+  prob.none.share.bday.in.r  <-  (1/n^r) * perm_without_replacement(n, r)
+  prob.atleast.two.share.bday.in.r <- 1 - prob.none.share.bday.in.r
+  return (prob.atleast.two.share.bday.in.r)
+}
+
+#Lets look at the 25 strangers [ here r = 25, n = 365 , we are assuming non-leap year here! ]
+n = 365 # assuming non leap year
+r = 25
+prob_two_share_bday(n, r)
+````
+ 
+ 
+For 50 strangers in the room:
+```{r}
+(prob_two_share_bday(n, 50))
+```
+
+
+
+### Problem Set 2
+
+__Write a program to take a document in English and print out the estimated probabilities for each of the words that occur in that document.Your program should take in a file containing a large document and write out the probabilities of each of the words that appear in that document Please remove all punctuation (quotes, commas, hyphens etc)and convert the words to lower case before you perform your calculations.__
+
+Lets first write a function to sanitize the text ( removing punctuations, and convert to lower case etc.)
+
+```{r}
+Sanitize <- function(text) {
+  #Sanitizes the given document text by removing punctuations and just keeps the ascii alphabets only, and covert to lower case .
+  #
+  #Arguments:
+  #Input: text, a char vector of scanned document.
+  #Output: result , a sanitized char vector.
+  
+  #substitues non-ascii chars with ?
+  san.text <- iconv(text, "UTF-8", "ASCII", sub="?")
+  
+  #replace all other non alphabets, with empty char '' 
+  san.text <- gsub('[\'\\-\\.\\?\\$\\,\\"0-9]', '', text)
+  san.text <- unlist(strsplit(san.text, '[-]'))
+
+  #to lower
+  san.text <- tolower(san.text[san.text != '' ])
+  
+  return(san.text)
+}
+
+SingleWordProb <- function(text) {
+  
+  #Takes a char vector of the scanned document and calc the prob of each word in the char vector.
+  #returns a data frame of word, frequency, prob, in descending order of the prob.
+  
+  #use dplyr for data frame manip..
+  require(dplyr)
+  
+  #First sanitize to remove punctuations etc.
+  words <- Sanitize(text)
+  
+  #get a table of freq and convert into a data frame.
+  prob.word <- as.data.frame(table(words))
+  
+  #add a new field calld, prob, and arrange in desc order of prob.
+  prob.word <- prob.word %>%  mutate(prob = Freq/sum(Freq)) %>% arrange(desc(prob))
+  
+  #return the prob data frame.
+  return (prob.word)
+}
+```
+
+*Client Calls:*
+
+```{r}
+#Let's scan the document, and call the funtion
+document <- scan( file = 'assign6.sample.txt' , what = character(0), quote=NULL, encoding= "UTF-8")
+prob.singleword <- SingleWordProb(document)
+str(prob.singleword)
+head(prob.singleword)
+filter(prob.singleword, words == "years")
+```
+
+
+
+__Extend your program to calculate the probability of two words occurring adjacent to each other. It should take in a document, and two words (say 'the' and 'for') and compute the probability of each of the words occurring in the document and the joint probability of both of them occurring together. The order of the two words is not important.__
+
+
+First write a function which would return a list of 2 vectors - one with single, and the other with pair word(s).
+And then a function that would provide the probabilities of individual as well as pair words.
+
+```{r}
+WordPair <- function(text) {
+
+  #Prepare single, and pairs of words from a given sanitized character vector lines.
+  
+  #Input: a character vector
+  #output: a list of two char vectors - 1 for single, and the other for pair
+  
+  word.single <- c()
+  word.pair <- c()
+  
+  for(i in 1:length(text)) {
+    words <- Sanitize(text[i])
+    words <- unlist(strsplit(words,"[ ]"))
+    words <- words[words != ""]
+    word.single <- c(word.single, words)
+    #lead - compares word with previous or next
+    word.pair <- c(word.pair, paste(words, lead(words), sep=":"))
+  }  
+  return(list("single" = word.single, "pair" = word.pair))
+
+}
+
+TwoWordProb <- function(text, word1, word2){
+  #Input : char vector from document, and two words.
+  #Output : list of probabilities - single word1, single word2,  pair joint prob
+  
+    word1 <- tolower(word1)
+    word2 <- tolower(word2)
+    words <- WordPair(Sanitize(text))
+    print(str(words))
+    
+    #Use our earlier function used for getting probs for single word. ( here , pair is also a single work with a : as separator)
+    prob.single <- SingleWordProb(words$single)
+    prob.pair <- SingleWordProb(words$pair)
+    
+    # where the words is equal to either word1:word2 , Or , word2:word1
+    pair <- prob.pair %>% filter(words == paste(word1, word2, sep=":") | words == paste(word2, word1, sep=":"))
+    
+    return(list("single.prob.word1" = prob.single$prob[prob.single$word==word1], 
+                "single.prob.word2" = prob.single$prob[prob.single$word==word2],
+                "pair.joint.prob" = sum(pair$probs)
+                ))
+}
+```
+
+*Client Call:*
+
+```{r}
+doc.pair <- scan(file = 'assign6.sample.txt', what = character(0), quote=NULL, sep="\n", encoding = "UTF-8")
+str(WordPair(Sanitize(doc.pair)))
+TwoWordProb(doc.pair, "the", "for")
+```
