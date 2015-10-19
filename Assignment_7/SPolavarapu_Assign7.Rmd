@@ -1,0 +1,165 @@
+---
+title: "Assignment 7"
+author: "Suman K Polavarapu"
+date: "Sunday, October 11, 2015"
+output: html_document
+---
+
+__Write a function to compute the expected value and standard deviation of an array of values. Compare your results with that of R's mean and std functions.__
+
+
+```{r}
+GetMeanSD <- function(data) 
+{
+  # Calculates the mean and sd of a given vector of numbers.
+  #
+  # Input:
+  #  data - a numeric vector
+  # Output:
+  #  a list of the mean and sd [both sample sd, and population sd].
+  
+  mean <- sum(data) / length(data)
+  
+  sd.sample <- sqrt( sum( (data - mean)^2 ) / (length(data) - 1) ) #Sample standard deviation(,dividing by n-1)
+  
+  sd.population <- sqrt( sum( (data - mean)^2 ) / (length(data)) ) #Full population sd, so dividing by n
+  
+  return ( list("mean" = mean, "sd.sample" = sd.sample, "sd.pop" = sd.population) )
+  
+}
+
+```
+
+*Client Calls:*
+
+```{r}
+set.seed(10)
+(test.data <- sample(1:10,20,replace=T))
+GetMeanSD(test.data)
+```
+
+Let's cross check with the built-in R mean and sd fuctions:
+```{r}
+mean(test.data)
+sd(test.data)
+```
+
+
+
+__Now, consider that instead of being able to neatly fit the values in memory in an array,you have an infinite stream of numbers coming by. How would you estimate the mean and standard deviation of such a stream?__
+
+Planning to store the current state [ number of observations, sum of those observations, squared sum etc..] into a temporary cache.
+And keep updating the state of the cache based on the incoming stream of values. At any time, we should be able to reset the cache, by
+calling the InitCache function. Also, this provides a simple visualization for the current state of mean , sd of the rolling estimate.
+
+For standard deviation, we will be using the below formula:
+$sd = \frac{\sqrt{n \sum x^2 - (\sum x)^2}}{n}$
+
+```{r}
+InitCache <- function(cacheName)
+{
+  #This is to initialize the cache - create a new temporary cache, if existing, we will reset it.
+   size =0
+   sum = 0;
+   sumsq = 0
+   mean=0
+   sd=0
+   fileCache <- data.frame(size, sum, sumsq, mean, sd)
+   write.csv(fileCache, cacheName)
+}
+
+GetRollingMeanSD <- function(nextVal)
+{
+
+  #This function gets the current state ( if exists) and calculates the new state, by including the nextVal.
+  #
+  #Input: nextVal : Incoming numeric value
+  #
+  #Output: A list of new mean and standard deviation.
+  #
+  
+  fileName <- "tempState.csv"
+  if (file.exists(fileName))
+  {
+    fileCache <- read.csv(fileName)
+  }
+  else
+  {
+    InitCache(fileName)
+  }
+  
+  #Get the current values
+  size.current  <- fileCache$size
+  sum.current   <- fileCache$sum
+  sumsq.current <- fileCache$sumsq
+  
+  #Calculate the new values
+  size.new <- size.current + 1
+  sum.new <- sum.current + nextVal
+  sumsq.new <- sumsq.current + nextVal^2 
+  
+  #Calculate the mean and sd based on the new values
+  mean.new <- sum.new/size.new
+  sd.new <- sqrt((size.new)*sumsq.new - sum.new^2)/size.new
+  
+  #prepare the cache with updated state info
+  fileCache.new <- data.frame(size = size.new, sum = sum.new, sumsq = sumsq.new, mean=mean.new, sd=sd.new)
+  
+  #persist the cache
+  write.csv(fileCache.new, fileName)
+  
+  #return the list with new mean and sd
+  return ( list("mean" = mean.new, "sd" = sd.new) )
+
+}
+
+# A simple ggplot grid, with mean and sd rolling estimates.
+DrawEstimates <- function(vals, mean, sd)
+{
+  require(gridExtra)
+  require(ggplot2)
+  plot1 <- ggplot(data.frame(vals, mean, sd), aes(x=vals, y=mean)) + geom_line() + xlab('Data Values') + ylab('Mean') +
+        ggtitle('Mean - Rolling Estimate')
+        
+  plot2 <- ggplot(data.frame(vals, mean, sd), aes(x=vals, y=sd)) + geom_line() + xlab('Data Values') + ylab('Standard Deviation') +
+        ggtitle('SD - Rolling Estimate')
+        
+  grid.arrange(plot1, plot2, nrow=2)
+}
+```
+
+
+*Client Calls:*
+
+Lets make few sample client calls:
+
+```{r}
+InitCache("tempState.csv")
+vals <- c()
+mean <- c()
+sd   <- c()
+for(i in 1:10)
+{
+    rolling.est <- GetRollingMeanSD(i)
+    vals <- c(vals, i)
+    mean <- c(mean, rolling.est$mean)
+    sd <- c(sd, rolling.est$sd)
+}
+DrawEstimates(vals, mean, sd)
+ 
+```
+
+```{r}
+InitCache("tempState.csv")
+samplevals <- runif(20, min=-100, max=100)
+for(i in samplevals)
+{
+      rolling.est <- GetRollingMeanSD(i)
+      vals <- c(vals, i)
+      mean <- c(mean, rolling.est$mean)
+      sd <- c(sd, rolling.est$sd)
+}
+DrawEstimates(vals, mean, sd)
+```
+
+
