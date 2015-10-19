@@ -1,0 +1,119 @@
+---
+title: "Assignment 8"
+author: "Suman K Polavarapu"
+date: "Sunday, October 18, 2015"
+output: html_document
+---
+
+
+### Problem Set 1
+
+Your colleague either commutes by train or by the bus. 20 days of the month, she takes the train and the remaining 10 days she takes the bus. If she takes the train, she reaches work on time with a probability of 0.9. If she takes the bus, she frequently gets stuck in traffic and reaches work on time with a probability of 0.5. Given that she was on time today, what is the probability that she took the bus to work today?
+
+Given probabilities :
+
+$$
+p(bus) = \frac{10}{30} = \frac{1}{3} \\
+p(train) = \frac{20}{30} = \frac{2}{3} \\
+p(ot|bus) = 0.5 \\
+p(ot|train) = 0.9
+$$
+
+We know that she is on time today, lets figure out the probability that she took the bus by applying the Bayes Rule:
+$$
+p(bus|ot) = \frac{p(ot|bus) p(bus)} {p(ot|bus) p(bus) + p(ot|train) p(train)}
+$$
+(note: the denominator is above is the total probablity of p(ot), as per the law of total probability)
+
+By substituting the values:
+$$
+p(bus|ot) = \frac{.5*\frac{1}{3}}{0.5(\frac{1}{3}) + .9(\frac{2}{3})} = \frac{5}{23} = 0.2174
+$$
+
+Hence, the probability she took the bus today, given she is early is 0.2174
+
+Lets verify the same with the gRain package:
+
+
+```{r}
+#source("http://bioconductor.org/biocLite.R")
+#biocLite("RBGL")
+#biocLite("Rgraphviz")
+suppressWarnings(suppressMessages(require(gRain)))
+suppressWarnings(suppressMessages(require(Rgraphviz)))
+
+ny <- c("no", "yes")
+tb <- c("train", "bus")
+
+#Now, prepare the conditional prob tables
+t.b <- cptable(~transtype, values=c(20,10), levels=tb)
+o.t <- cptable(~ontime|transtype, values=c(0.1,0.9,0.5,0.5), levels=ny)
+
+#compile the conditional prob tables
+plist <- compileCPT(list(t.b, o.t))
+
+
+pn <- grain(plist)
+plot(pn)
+
+#Load the prior knowledge, onTime = yes
+ot.f <- setFinding(pn, c("ontime"), c("yes"))
+
+#lets check what does the gRain compute with the above knowledge
+(querygrain(ot.f))
+```
+
+
+
+### Problem Set 2
+
+From the below graph, what happens to the probability of Difficulty of Course when you present the evidence that the received recommendation letter was good? In addition, now present the evidence that both SAT scores were good and the letter of recommendation was good, What is the probability of the Difficulty of Course now?
+
+![alt text](bayes_pic1.png)
+
+Let's first construct conditional prob tables from the above:
+
+```{r}
+ny <- c("no", "yes")
+lh <- c("low", "high")
+d <- cptable(~difficulty, values=c(0.3,0.7), levels = ny)
+i <- cptable(~intelligence, values = c(0.8, 0.2), levels = lh)
+s.i <- cptable(~sat|intelligence, values = c(0.9,0.1,0.2,0.8), levels = lh)
+g.di <- cptable(~grade|difficulty:intelligence, values=c(0.6,0.4,0.8,0.2,0.1,0.99,0.1,0.9), levels = lh)
+l.g <- cptable(~letter|grade, values=c(0.9,0.1,0.5,0.95), levels = lh)
+
+plist <- compileCPT(list(d, i, s.i, g.di, l.g))
+```
+
+Let's plot the graph of the Bayesian Tree we created above:
+
+```{r}
+pn <- grain(plist)
+plot(pn)
+```
+
+Let's look at all the probabilities from the constructed tree:
+
+```{r}
+(querygrain(pn, nodes=c("difficulty", "intelligence", "sat", "grade", "letter"), type="marginal"))
+
+```
+
+__What is the probability of course difficulty given that there was a good letter of recommendation ? __
+
+```{r}
+letter.f <- setFinding(pn, nodes = c("letter"), states=c("high"))
+(querygrain(letter.f, nodes=c("difficulty"), type="marginal"))
+```
+
+So, Given there is a good letter of recommendation, the probability of course being difficult is 0.6403 
+and the course being not difficult is 0.36.
+
+__Now present the evidence that both SAT scores were good and the letter of recommendation was good, What is the probability of the Difficulty of Course ?__
+
+```{r}
+sat.f <- setFinding(letter.f, nodes=c("sat"), states=c("high"))
+(querygrain(sat.f, nodes=c("difficulty"), type="marginal"))
+```
+
+From the above, we notice that when we added the evidence of good SAT score, the difficulty of the course probability is slightly increased.
