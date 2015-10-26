@@ -1,0 +1,167 @@
+---
+title: "Assignment 9"
+author: "Suman K Polavarapu"
+date: "October 25, 2015"
+output: html_document
+---
+
+### Problem Set
+
+#### write a function that will produce a sample of random variable that is distributed as follows:
+
+$$
+f(x) = \left\{ \begin{array}{1 1}
+x \quad 0 \leq x < 1 \\
+2-x \quad 1 \leq x \leq 2
+\end {array} \right.
+$$
+
+
+__This function can be simply defined as below, which can be later used in R's built in 'sample' method to generate samples__
+
+```{r}
+fun1 <- function(x){
+    if(0 <= x && x <= 2){
+        if(x <= 1){
+            return(x)
+        } else {
+            return(2-x)
+        }
+    }
+}
+```
+
+
+__However, let's use the Inverse Sampling Technique here, to generate samples :__
+
+Create an inverse cdf function for this distribution:
+
+Anti-derivative for the above function is:
+
+$$
+F(x) = \left\{ \begin{array}{1 1}
+\frac{x^2}{2} \quad 0 \leq x < 1 \\
+2x - \frac{x^2}{2} \quad 1 \leq x \leq 2
+\end{array} \right.
+$$
+
+The inverse of the anti-derivative:
+$$
+F^{-1}(x) = \left\{ \begin{array}{1 1}
+\sqrt{2y} \quad 0 \leq y < \frac{1}{2} \\
+2 - \sqrt{2(1 - y)} \quad \frac{1}{2} \leq y \leq 1
+\end{array} \right.
+$$
+
+__The Inverse CDF function:__
+
+```{r}
+inverseCDF <- function(y){
+  resp <- 0
+  if (0 <= y &&  y <= 1) {
+    if ( y <= 0.5) {
+      resp = (sqrt(2*y))
+    } else {
+      resp = (2 - sqrt(2 * (1-y)) )
+    }
+  }
+  else  {
+    resp = 0 # Out of range !
+  }
+  return (resp)
+}
+
+```
+
+Lets apply the above inverse cdf function to a vector of randomly selected values between 0 and 1, and plot those data points.
+
+```{r}
+require(ggplot2)
+sample.data <- data.frame(X = sapply(runif(10000), inverseCDF))
+print(head(sample.data))
+ggplot(data = sample.data, aes(sample.data$X)) + geom_histogram(binwidth=.05) + ggtitle("Triangular PDF")
+```
+
+
+####Now, write a function (using R) that will produce a sample of random variable that is distributed as follows:
+
+$$
+f(x) = \left\{ \begin{array}{1 1}
+1-x \quad 0 \leq x \leq 1 \\
+x-1 \quad 1 < x \leq 2
+\end {array} \right.
+$$
+
+```{r}
+fun2 <- function(x) {
+  resp <- 0
+  if (0 <= x && x <= 2) {
+    if (x <= 1) {
+      resp <- (1 - x)
+    }
+    else {
+      resp <- (x - 1)
+    }
+  }
+  
+  return (resp)
+}
+```
+
+First create a vector of probabilities using the above function.And use that as 'prob' for R-built in function 'sample', and plot.
+```{r}
+#simply, create vector of values between 0 and 2
+x <- seq(from = 0, to = 2, length.out = 10000)
+
+#create vector of probabilities, which can be used later for sampling.
+funx.prob <- sapply(x, fun2)
+
+#Now, create a sample
+sample.df <- data.frame(X = sample(x, 10000, replace=TRUE, prob=funx.prob))
+ggplot(sample.df, aes(sample.df$X)) + geom_histogram(binwidth=.05) + ggtitle("Inverted Traingular PDF")
+
+```
+
+
+####Write a program that will take a sample set size (n) as a parameter and the PDF as a second parameter,and perform 1000 iterations where it samples from the PDF, each time taking n samples and computes the mean of these n samples. It then plots a histogram of these 1000 means that it computes.
+
+```{r}
+distributionOfMeans <- function(n, pdf) {
+   #Calculates the mean of 1000 samples of size n for the given pdf
+   #plots the distribution of the mean.
+  
+  x <- seq(0, 2, by=0.01)
+  funx.prob <- sapply(x, pdf)
+  means <- c()
+  
+  for(i in 1:1000) {
+    sampleiter <-  sample(x, n, replace=TRUE, prob=funx.prob)
+    means <- c(means, mean(sampleiter))
+  }
+  
+  print(paste(("The mean of the samplings is: "), mean(means)))
+  print(paste(("The standard deviation of the samplings is: "), sd(means)))
+  
+  means.df <- data.frame(means)
+  ggplot(means.df, aes(means)) + geom_histogram(binwidth=.025) + xlab("Mean of the Sample") + ggtitle(paste("Distribution of Means;PDF=",  deparse(substitute(pdf)), ";Samples=1000;Sample Size=", n)) 
+  
+
+}
+
+```
+
+__Client Calls:__
+
+Lets try with the sample size of 20
+```{r}
+distributionOfMeans(n=20, pdf=fun1)
+distributionOfMeans(n=20, pdf=fun2)
+```
+
+Lets try with the sample size of 10
+```{r}
+distributionOfMeans(n=10, pdf=fun1)
+distributionOfMeans(n=10, pdf=fun2)
+```
+
+From the above, its evident that even for reasonably small sample sizes such as 10, Central Limit Theorem holds true - The means of the sampling distributions from 'any' probability distribution, forms a bell shaped curve ('normally distributed' around the mean of the original distribution)
