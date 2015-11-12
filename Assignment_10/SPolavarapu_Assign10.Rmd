@@ -1,0 +1,141 @@
+---
+title: "Assignment 10 - Page Rank"
+author: "Suman K Polavarapu"
+date: "November 1, 2015"
+output: html_document
+---
+
+### Page Rank
+
+Let's use the 6 page universe that we had in the course notes. For this directed graph, perform the following calculations in R.
+
+#### Form the A matrix. Then, introduce decay and form the B matrix as we did in the course notes
+
+$$
+A = \begin{bmatrix}
+0 & 0 & \frac{1}{4} & 0 & 0 & 0 \\ 
+\frac{1}{2} & 0 & \frac{1}{4} & 0 & 0 & 0 \\ 
+\frac{1}{2} & 1 & 0 & 0 & 0 & \frac{1}{2} \\ 
+0 & 0 & 0 & 0 & \frac{1}{2} & \frac{1}{2} \\
+0 & 0 & \frac{1}{4} & \frac{1}{2} & 0 & 0 \\
+0 & 0 & \frac{1}{4} & \frac{1}{2} & \frac{1}{2} & 0
+\end{bmatrix}
+$$
+
+```{r}
+(A <- matrix (c(  0, 0,  1/4,  0,   0,   0,
+               1/2, 0,  1/4,  0,   0,   0,
+               1/2, 1,    0,  0,   0, 1/2,
+                 0, 0,    0,  0, 1/2, 1/2,
+                 0, 0,  1/4, 1/2,  0,   0,
+                 0, 0,  1/4, 1/2,1/2,   0), byrow=TRUE, nrow=6))
+
+```
+
+
+__Introduce decay and form the B matrix__
+
+```{r}
+d <- 0.85
+nrows <- nrow(A)
+(B <- d * A + ( (1-d) / nrows ))
+```
+
+####Start with a uniform rank vector r and perform power iterations on B till convergence.
+
+```{r}
+#The uniform rank vector for the above 6 page universe [i.e., each carrying the equal probability ]
+(r <- rep(1/nrows, nrows))
+```
+
+__Power Iterations__
+
+Power Iteration Formula: $$ r_f = A^n \times r_i $$ (here,  $n$ is the number of iterations of the algorithm that we want to run. As we run through these iterations, the ranks of the pages converge and stabilize).
+
+
+```{r}
+powerIteration <- function(A, r, n) {
+  #This function performs the power iterations to calculate the probability of landing on a given page.
+  #Inputs:
+  # A = Input matrix
+  # r = initial rank of the urls
+  # n = Number of Iterations
+  #
+  #Output:
+  #
+  # Final probability matrix computed
+
+  Iter = diag(dim(A)[1])
+  for ( i in 1:n)
+  {
+    Iter = Iter %*% A
+  }
+  
+  return (Iter %*% r)
+  
+}
+
+```
+
+__Now, lets call the above function with B, r for few timess__
+
+```{r}
+(powerIteration(B, r, 20))
+(powerIteration(B, r, 30))
+(r_j <- powerIteration(B, r, 40))
+```
+
+Notice that the convergence occurs after 30 iterations !
+
+####Eigen-decomposition of $B$
+
+Compute the eigen-decomposition of B and verify that you indeed get an eigenvalue of 1 as the largest eigenvalue and that its corresponding eigenvector is the same vector that you obtained in the previous power iteration method. Further, this eigenvector has all positive entries and it sums to 1.
+
+```{r}
+eigenDecom <- eigen(B)
+(maxEigenVal <- max(as.numeric(eigenDecom$values)))
+
+#Find the corresponding eigen vector
+ndindexes <- which(round(maxEigenVal, 2) == 1.00)
+matrix(eigenDecom$vectors[,ndindexes], nrow=6, byrow=TRUE)
+
+```
+
+This is not same as the one  we exepcted in the power iteration method (r_j)! , eigen function must be normalizing the eigenvector.
+Let's try to find the unit vector for (r_j)
+
+```{r}
+unitVector <- function(v) {
+  vlen <- sqrt(sum(v^2))
+  return ( v / vlen)
+}
+
+(unitVector(r_j))
+
+```
+
+####Use the igraph package in R and its page.rank method to compute the Page Rank of the graph as given in A.
+
+```{r}
+
+library(igraph)
+
+#Create adj graph from the given matrix A.  IMPORTANT NOTE: Since we set each column as vertex, we need to transpose the matrix A.
+graphObj <- graph.adjacency(t(A), weighted = TRUE, mode = "directed")
+plot(graphObj)
+```
+
+Let's compute the page rank using the igraph
+
+```{r}
+(prVec <- page.rank(graphObj)$vector)
+
+```
+
+Let's compute the unit vector to compare with our earlier results
+
+```{r}
+(matrix(unitVector(prVec), nrow=6, byrow=TRUE))
+
+round(prVec) == round(r_j)
+```
